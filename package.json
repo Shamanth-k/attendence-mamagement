@@ -1,0 +1,24 @@
+{
+  "name": "attendance-management-platform",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend/gateway",
+    "backend/services/master-service",
+    "backend/services/attendance-service",
+    "backend/services/report-service",
+    "backend/services/biometric-service"
+  ],
+  "scripts": {
+    "dev": "concurrently -n master,attendance,report,biometric,gateway,frontend -c yellow,green,magenta,cyan,blue,white \"npm run dev:master\" \"npm run dev:attendance\" \"npm run dev:report\" \"npm run dev:biometric\" \"npm run dev:gateway\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:gateway": "npm --workspace backend/gateway run dev",
+    "dev:master": "npm --workspace backend/services/master-service run dev",
+    "dev:attendance": "npm --workspace backend/services/attendance-service run dev",
+    "dev:report": "npm --workspace backend/services/report-service run dev",
+    "dev:biometric": "npm --workspace backend/services/biometric-service run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
