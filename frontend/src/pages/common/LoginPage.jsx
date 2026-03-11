@@ -26,8 +26,14 @@ function LoginPage() {
       } else {
         navigate(auth.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard", { replace: true });
       }
-    } catch {
-      setError("Login failed. Check credentials.");
+    } catch (err) {
+      const status = err?.response?.status;
+      const message = err?.response?.data?.message;
+      if (status === 401) {
+        setError(message || "Invalid username or password.");
+      } else {
+        setError(message || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

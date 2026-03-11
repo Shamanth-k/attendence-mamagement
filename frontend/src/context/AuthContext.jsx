@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authApi, setApiAuthToken } from "../lib/api";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../common/authStorage";
 
@@ -23,6 +23,7 @@ function roleHome(role) {
 
 function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => getStoredAuth());
+  const [isReady, setIsReady] = useState(false);
   const isAuthenticated = Boolean(auth?.token);
 
   const applyAuth = (nextAuth) => {
@@ -56,16 +57,52 @@ function AuthProvider({ children }) {
     applyAuth({ ...auth, isFirstLogin: false });
   };
 
+  useEffect(() => {
+    let active = true;
+
+    const bootstrapSession = async () => {
+      const stored = getStoredAuth();
+      if (!stored?.token) {
+        if (active) setIsReady(true);
+        return;
+      }
+
+      setApiAuthToken(stored.token);
+      try {
+        const res = await authApi.get("/auth/session");
+        const normalized = normalizeLoginPayload({
+          ...res?.data?.data,
+          token: stored.token
+        });
+        if (active) {
+          applyAuth(normalized);
+        }
+      } catch {
+        if (active) {
+          applyAuth(null);
+        }
+      } finally {
+        if (active) setIsReady(true);
+      }
+    };
+
+    bootstrapSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const value = useMemo(
     () => ({
       auth,
       isAuthenticated,
+      isReady,
       login,
       logout,
       resolveHome,
       markFirstLoginComplete
     }),
-    [auth, isAuthenticated]
+    [auth, isAuthenticated, isReady]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
