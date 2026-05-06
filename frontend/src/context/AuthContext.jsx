@@ -24,8 +24,19 @@ function roleHome(role) {
 
 function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => getStoredAuth());
-  const [isAuthChecking, setIsAuthChecking] = useState(() => Boolean(getStoredAuth()?.token));
+  const [isReady, setIsReady] = useState(false);
   const isAuthenticated = Boolean(auth?.token);
+
+  const applyAuth = (nextAuth) => {
+    setAuth(nextAuth);
+    if (nextAuth?.token) {
+      setStoredAuth(nextAuth);
+      setApiAuthToken(nextAuth.token);
+    } else {
+      clearStoredAuth();
+      setApiAuthToken("");
+    }
+  };
 
   useEffect(() => {
     const syncStoredAuth = () => {
@@ -46,12 +57,13 @@ function AuthProvider({ children }) {
     let cancelled = false;
 
     const verifyStoredSession = async () => {
+      setIsReady(false);
+
       if (!auth?.token) {
-        setIsAuthChecking(false);
+        if (!cancelled) setIsReady(true);
         return;
       }
 
-      setIsAuthChecking(true);
       try {
         const res = await authApi.get("/auth/session");
         if (cancelled) return;
@@ -66,7 +78,7 @@ function AuthProvider({ children }) {
       } catch {
         if (!cancelled) applyAuth(null);
       } finally {
-        if (!cancelled) setIsAuthChecking(false);
+        if (!cancelled) setIsReady(true);
       }
     };
 
@@ -75,17 +87,6 @@ function AuthProvider({ children }) {
       cancelled = true;
     };
   }, [auth?.token]);
-
-  const applyAuth = (nextAuth) => {
-    setAuth(nextAuth);
-    if (nextAuth?.token) {
-      setStoredAuth(nextAuth);
-      setApiAuthToken(nextAuth.token);
-    } else {
-      clearStoredAuth();
-      setApiAuthToken("");
-    }
-  };
 
   const login = async (credentials) => {
     const res = await authApi.post("/auth/login", credentials);
@@ -128,15 +129,16 @@ function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       auth,
-      isAuthChecking,
+      isAuthChecking: !isReady,
       isAuthenticated,
+      isReady,
       login,
       logout,
       resolveHome,
       markFirstLoginComplete,
       updateUsername
     }),
-    [auth, isAuthenticated]
+    [auth, isAuthenticated, isReady]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

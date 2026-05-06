@@ -4,8 +4,9 @@ import { clearStoredAuth, getStoredAuth } from "../common/authStorage";
 const configuredBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 const authBaseURL = configuredBase.replace(/\/api\/?$/, "");
 
-const api = axios.create({ baseURL: configuredBase });
-const authApi = axios.create({ baseURL: authBaseURL });
+const REQUEST_TIMEOUT_MS = 15000;
+const api = axios.create({ baseURL: configuredBase, timeout: REQUEST_TIMEOUT_MS });
+const authApi = axios.create({ baseURL: authBaseURL, timeout: REQUEST_TIMEOUT_MS });
 
 function setApiAuthToken(token) {
   if (token) {

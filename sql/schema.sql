@@ -25,6 +25,7 @@ CREATE TABLE sections (
   department_id INT NOT NULL,
   description VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_sections_department_id (department_id),
   CONSTRAINT fk_sections_department FOREIGN KEY (department_id) REFERENCES departments(id)
 );
 
@@ -34,6 +35,7 @@ CREATE TABLE employees (
   full_name VARCHAR(140) NOT NULL,
   section_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_employees_section_id (section_id),
   CONSTRAINT fk_employee_section FOREIGN KEY (section_id) REFERENCES sections(id)
 );
 

@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 require("dotenv").config({ path: "../../.env" });
@@ -188,8 +188,14 @@ app.post("/auth/login", async (req, res) => {
       expiresIn: JWT_EXPIRES_IN,
       role: user.role,
       id: user.id,
+      username: user.username,
       isFirstLogin: Boolean(user.is_first_login),
-      user: { id: user.id, username: user.username, role: user.role, isFirstLogin: Boolean(user.is_first_login) }
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        isFirstLogin: Boolean(user.is_first_login)
+      }
     }
   });
 });
@@ -201,10 +207,13 @@ app.post("/auth/logout", requireBearerAuth, async (req, res) => {
 
 app.get("/auth/session", requireBearerAuth, async (req, res) => {
   const [rows] = await db.query(
-    "SELECT id, username, role, is_first_login FROM users WHERE id = ? AND is_active = 1 LIMIT 1",
+    "SELECT id, username, role, is_active, is_first_login FROM users WHERE id = ? LIMIT 1",
     [Number(req.auth.sub)]
   );
-  if (!rows.length) return res.status(401).json({ message: "invalid session" });
+
+  if (!rows.length || !rows[0].is_active) {
+    return res.status(401).json({ message: "invalid or expired token" });
+  }
 
   const user = rows[0];
   return res.json({
@@ -213,7 +222,12 @@ app.get("/auth/session", requireBearerAuth, async (req, res) => {
       username: user.username,
       role: user.role,
       isFirstLogin: Boolean(user.is_first_login),
-      user: { id: user.id, username: user.username, role: user.role, isFirstLogin: Boolean(user.is_first_login) }
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        isFirstLogin: Boolean(user.is_first_login)
+      }
     }
   });
 });
@@ -354,6 +368,7 @@ Object.entries(targets).forEach(([path, target]) => {
           proxyReq.setHeader("x-user-id", req.auth?.sub || "");
           proxyReq.setHeader("x-user-role", req.auth?.role || "");
           proxyReq.setHeader("x-user-name", req.auth?.username || "");
+          fixRequestBody(proxyReq, req);
         }
       }
     })

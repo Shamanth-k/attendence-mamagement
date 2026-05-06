@@ -18,12 +18,20 @@ import EmployeeAttendancePage from "./pages/employee/EmployeeAttendancePage";
 import EmployeeReportPage from "./pages/employee/EmployeeReportPage";
 import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
+import { useAuth } from "./context/AuthContext";
+
+function LandingRoute() {
+  const { isReady, resolveHome } = useAuth();
+  if (!isReady) return null;
+  return <Navigate to={resolveHome()} replace />;
+}
 
 function App() {
   return (
     <AuthProvider>
       <EmployeeProvider>
         <Routes>
+          <Route path="/" element={<LandingRoute />} />
           <Route element={<PublicOnly />}>
             <Route path="/login" element={<LoginPage />} />
           </Route>
@@ -56,7 +64,7 @@ function App() {
             </Route>
           </Route>
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </EmployeeProvider>
     </AuthProvider>
