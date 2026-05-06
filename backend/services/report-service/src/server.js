@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config({ path: "../../.env" });
 const db = require("../../../shared/src/db");
 const { createAuditMiddleware } = require("../../../shared/src/audit");
+const { requireDateRange, requirePositiveIntParam } = require("../../../shared/src/validation");
 
 const app = express();
 app.use(cors());
@@ -56,10 +57,12 @@ const linearSlope = (arr) => {
 };
 
 app.get("/api/report/chart/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
   const fallback = getCurrentMonthRange();
-  const from = req.query.from || fallback.from;
-  const to = req.query.to || fallback.to;
+  const range = req.query.from || req.query.to ? requireDateRange(req, res) : fallback;
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT DAY(attendance_date) AS day, COALESCE(work_minutes, 0) AS work_minutes
@@ -85,10 +88,12 @@ app.get("/api/report/chart/:employeeId", async (req, res) => {
 });
 
 app.get("/api/report/url-usage/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
   const fallback = getCurrentMonthRange();
-  const from = req.query.from || fallback.from;
-  const to = req.query.to || fallback.to;
+  const range = req.query.from || req.query.to ? requireDateRange(req, res) : fallback;
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT app_name, ROUND(SUM(duration_minutes), 2) AS total_minutes
@@ -119,10 +124,12 @@ app.get("/api/report/url-usage/:employeeId", async (req, res) => {
 });
 
 app.get("/api/report/predictive/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
   const fallback = getCurrentMonthRange();
-  const from = req.query.from || fallback.from;
-  const to = req.query.to || fallback.to;
+  const range = req.query.from || req.query.to ? requireDateRange(req, res) : fallback;
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT attendance_date, status, in_time, out_time
@@ -167,10 +174,12 @@ app.get("/api/report/predictive/:employeeId", async (req, res) => {
 });
 
 app.get("/api/report/anomalies/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
   const fallback = getCurrentMonthRange();
-  const from = req.query.from || fallback.from;
-  const to = req.query.to || fallback.to;
+  const range = req.query.from || req.query.to ? requireDateRange(req, res) : fallback;
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT attendance_date, work_minutes, idle_minutes, status

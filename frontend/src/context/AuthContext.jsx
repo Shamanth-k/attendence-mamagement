@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authApi, setApiAuthToken } from "../lib/api";
-import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../common/authStorage";
+import { AUTH_STORAGE_EVENT, clearStoredAuth, getStoredAuth, setStoredAuth } from "../common/authStorage";
 
 const AuthContext = createContext(null);
 
@@ -9,12 +9,13 @@ function normalizeLoginPayload(payload) {
   const token = payload?.token || "";
   const role = String(payload?.role || user?.role || "").toUpperCase();
   const id = payload?.id || user?.id || user?.employeeId || user?.employee_id;
+  const username = payload?.username || user?.username || "";
   const isFirstLogin = Boolean(
     payload?.isFirstLogin ?? user?.isFirstLogin ?? user?.is_first_login
   );
 
   if (!token || !role || !id) return null;
-  return { token, role, id, isFirstLogin };
+  return { token, role, id, username, isFirstLogin };
 }
 
 function roleHome(role) {
@@ -23,7 +24,57 @@ function roleHome(role) {
 
 function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => getStoredAuth());
+  const [isAuthChecking, setIsAuthChecking] = useState(() => Boolean(getStoredAuth()?.token));
   const isAuthenticated = Boolean(auth?.token);
+
+  useEffect(() => {
+    const syncStoredAuth = () => {
+      const storedAuth = getStoredAuth();
+      setAuth(storedAuth);
+      setApiAuthToken(storedAuth?.token || "");
+    };
+
+    window.addEventListener("storage", syncStoredAuth);
+    window.addEventListener(AUTH_STORAGE_EVENT, syncStoredAuth);
+    return () => {
+      window.removeEventListener("storage", syncStoredAuth);
+      window.removeEventListener(AUTH_STORAGE_EVENT, syncStoredAuth);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const verifyStoredSession = async () => {
+      if (!auth?.token) {
+        setIsAuthChecking(false);
+        return;
+      }
+
+      setIsAuthChecking(true);
+      try {
+        const res = await authApi.get("/auth/session");
+        if (cancelled) return;
+        const payload = res?.data?.data || {};
+        applyAuth({
+          ...auth,
+          id: payload.id || auth.id,
+          username: payload.username || payload.user?.username || auth.username || "",
+          role: String(payload.role || payload.user?.role || auth.role).toUpperCase(),
+          isFirstLogin: Boolean(payload.isFirstLogin ?? payload.user?.isFirstLogin ?? auth.isFirstLogin)
+        });
+      } catch {
+        if (!cancelled) applyAuth(null);
+      } finally {
+        if (!cancelled) setIsAuthChecking(false);
+      }
+    };
+
+    verifyStoredSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.token]);
 
   const applyAuth = (nextAuth) => {
     setAuth(nextAuth);
@@ -44,7 +95,20 @@ function AuthProvider({ children }) {
     return normalized;
   };
 
-  const logout = () => applyAuth(null);
+  const logout = async () => {
+    try {
+      if (auth?.token) {
+        await authApi.post("/auth/logout");
+      }
+    } catch {
+      // Local logout should still happen if the server has already invalidated the session.
+    } finally {
+      applyAuth(null);
+      if (window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    }
+  };
 
   const resolveHome = () => {
     if (!auth) return "/login";
@@ -56,14 +120,21 @@ function AuthProvider({ children }) {
     applyAuth({ ...auth, isFirstLogin: false });
   };
 
+  const updateUsername = (username) => {
+    if (!auth) return;
+    applyAuth({ ...auth, username });
+  };
+
   const value = useMemo(
     () => ({
       auth,
+      isAuthChecking,
       isAuthenticated,
       login,
       logout,
       resolveHome,
-      markFirstLoginComplete
+      markFirstLoginComplete,
+      updateUsername
     }),
     [auth, isAuthenticated]
   );

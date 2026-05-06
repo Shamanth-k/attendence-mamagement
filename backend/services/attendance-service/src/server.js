@@ -3,6 +3,11 @@ const cors = require("cors");
 require("dotenv").config({ path: "../../.env" });
 const db = require("../../../shared/src/db");
 const { createAuditMiddleware } = require("../../../shared/src/audit");
+const {
+  optionalMonth,
+  requireDateRange,
+  requirePositiveIntParam
+} = require("../../../shared/src/validation");
 
 const app = express();
 app.use(cors());
@@ -155,8 +160,9 @@ async function fetchSummary(employeeId, from, to) {
 }
 
 app.get("/api/attendance/monthly/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const month = req.query.month || getCurrentMonthKey();
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const month = optionalMonth(req.query.month, getCurrentMonthKey());
   const from = `${month}-01`;
   const to = `${month}-31`;
   const data = await fetchAttendanceRows(employeeId, from, to);
@@ -164,8 +170,9 @@ app.get("/api/attendance/monthly/:employeeId", async (req, res) => {
 });
 
 app.get("/api/attendance/summary/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const month = req.query.month || getCurrentMonthKey();
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const month = optionalMonth(req.query.month, getCurrentMonthKey());
   const from = `${month}-01`;
   const to = `${month}-31`;
   const data = await fetchSummary(employeeId, from, to);
@@ -173,28 +180,31 @@ app.get("/api/attendance/summary/:employeeId", async (req, res) => {
 });
 
 app.get("/api/attendance/range/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const from = req.query.from;
-  const to = req.query.to;
-  if (!from || !to) return res.status(400).json({ message: "from and to are required" });
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const range = requireDateRange(req, res);
+  if (!range) return;
+  const { from, to } = range;
   const data = await fetchAttendanceRows(employeeId, from, to);
   res.json({ data });
 });
 
 app.get("/api/attendance/summary-range/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const from = req.query.from;
-  const to = req.query.to;
-  if (!from || !to) return res.status(400).json({ message: "from and to are required" });
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const range = requireDateRange(req, res);
+  if (!range) return;
+  const { from, to } = range;
   const data = await fetchSummary(employeeId, from, to);
   res.json({ data });
 });
 
 app.get("/api/attendance/alerts/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const from = req.query.from;
-  const to = req.query.to;
-  if (!from || !to) return res.status(400).json({ message: "from and to are required" });
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const range = requireDateRange(req, res);
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT employee_id, attendance_date, in_time, out_time, status
@@ -209,10 +219,11 @@ app.get("/api/attendance/alerts/:employeeId", async (req, res) => {
 });
 
 app.post("/api/attendance/alerts/run/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const from = req.query.from;
-  const to = req.query.to;
-  if (!from || !to) return res.status(400).json({ message: "from and to are required" });
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const range = requireDateRange(req, res);
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT employee_id, attendance_date, in_time, out_time, status
@@ -240,10 +251,11 @@ app.post("/api/attendance/alerts/run/:employeeId", async (req, res) => {
 });
 
 app.get("/api/attendance/alerts-stored/:employeeId", async (req, res) => {
-  const employeeId = Number(req.params.employeeId);
-  const from = req.query.from;
-  const to = req.query.to;
-  if (!from || !to) return res.status(400).json({ message: "from and to are required" });
+  const employeeId = requirePositiveIntParam(req, res, "employeeId");
+  if (!employeeId) return;
+  const range = requireDateRange(req, res);
+  if (!range) return;
+  const { from, to } = range;
 
   const [rows] = await db.query(
     `SELECT id, employee_id, alert_date, alert_type, severity, detail, created_at, updated_at

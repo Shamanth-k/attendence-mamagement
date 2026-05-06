@@ -6,6 +6,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "attendance_management",
+  multipleStatements: false,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

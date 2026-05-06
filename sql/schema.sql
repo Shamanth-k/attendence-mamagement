@@ -4,6 +4,7 @@ USE attendance_management;
 DROP TABLE IF EXISTS biometric_events;
 DROP TABLE IF EXISTS attendance_alerts;
 DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS user_sessions;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS app_usage_logs;
 DROP TABLE IF EXISTS attendance_logs;
@@ -44,6 +45,18 @@ CREATE TABLE users (
   password_hash VARCHAR(255) NOT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_sessions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  token_id CHAR(36) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE KEY uq_user_sessions_token_id (token_id),
+  INDEX idx_user_sessions_user_active (user_id, revoked_at, expires_at)
 );
 
 CREATE TABLE attendance_logs (

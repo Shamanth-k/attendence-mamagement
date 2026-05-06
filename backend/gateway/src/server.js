@@ -12,10 +12,16 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-this-in-production";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "8h";
-const AUTH_REQUIRED = (process.env.AUTH_REQUIRED || "false").toLowerCase() === "true";
+const AUTH_REQUIRED = (process.env.AUTH_REQUIRED || "true").toLowerCase() === "true";
 const SCRYPT_KEYLEN = 64;
 
 const rolePermissions = {
+  ADMIN: [{ method: "*", path: "/api/" }],
+  EMPLOYEE: [
+    { method: "GET", path: "/api/master/" },
+    { method: "GET", path: "/api/attendance/" },
+    { method: "GET", path: "/api/report/" }
+  ],
   admin: [{ method: "*", path: "/api/" }],
   hr: [
     { method: "*", path: "/api/master/" },
@@ -56,11 +62,67 @@ const hashPassword = (password, salt) =>
 const getBearerToken = (authHeader = "") =>
   authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-const requireBearerAuth = (req, res, next) => {
+const ensureSessionTable = async () => {
+  await db.query(
+    `CREATE TABLE IF NOT EXISTS user_sessions (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      user_id INT NOT NULL,
+      token_id CHAR(36) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      revoked_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_user_sessions_token_id (token_id),
+      INDEX idx_user_sessions_user_active (user_id, revoked_at, expires_at)
+    )`
+  );
+};
+
+const createSession = async (userId, tokenId, expiresAtSeconds) => {
+  await ensureSessionTable();
+  await db.query(
+    "INSERT INTO user_sessions(user_id, token_id, expires_at) VALUES (?, ?, FROM_UNIXTIME(?))",
+    [userId, tokenId, expiresAtSeconds]
+  );
+};
+
+const revokeSession = async (tokenId) => {
+  if (!tokenId) return;
+  await ensureSessionTable();
+  await db.query(
+    "UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE token_id = ? AND revoked_at IS NULL",
+    [tokenId]
+  );
+};
+
+const isSessionActive = async (decoded) => {
+  if (!decoded?.jti || !decoded?.sub) return false;
+  await ensureSessionTable();
+  const [rows] = await db.query(
+    `SELECT id
+     FROM user_sessions
+     WHERE token_id = ? AND user_id = ? AND revoked_at IS NULL AND expires_at > NOW()
+     LIMIT 1`,
+    [decoded.jti, Number(decoded.sub)]
+  );
+  return rows.length > 0;
+};
+
+const verifyAuthToken = async (token) => {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  const active = await isSessionActive(decoded);
+  if (!active) {
+    const error = new Error("inactive session");
+    error.name = "InactiveSessionError";
+    throw error;
+  }
+  return decoded;
+};
+
+const requireBearerAuth = async (req, res, next) => {
   const token = getBearerToken(req.headers.authorization || "");
   if (!token) return res.status(401).json({ message: "missing bearer token" });
   try {
-    req.auth = jwt.verify(token, JWT_SECRET);
+    req.auth = await verifyAuthToken(token);
     return next();
   } catch {
     return res.status(401).json({ message: "invalid or expired token" });
@@ -111,11 +173,14 @@ app.post("/auth/login", async (req, res) => {
     return res.status(401).json({ message: "invalid credentials" });
   }
 
+  const tokenId = crypto.randomUUID();
   const token = jwt.sign(
     { sub: user.id, username: user.username, role: user.role },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN, jwtid: tokenId }
   );
+  const decoded = jwt.decode(token);
+  await createSession(user.id, tokenId, decoded.exp);
 
   return res.json({
     data: {
@@ -123,6 +188,30 @@ app.post("/auth/login", async (req, res) => {
       expiresIn: JWT_EXPIRES_IN,
       role: user.role,
       id: user.id,
+      isFirstLogin: Boolean(user.is_first_login),
+      user: { id: user.id, username: user.username, role: user.role, isFirstLogin: Boolean(user.is_first_login) }
+    }
+  });
+});
+
+app.post("/auth/logout", requireBearerAuth, async (req, res) => {
+  await revokeSession(req.auth.jti);
+  return res.json({ message: "logged out" });
+});
+
+app.get("/auth/session", requireBearerAuth, async (req, res) => {
+  const [rows] = await db.query(
+    "SELECT id, username, role, is_first_login FROM users WHERE id = ? AND is_active = 1 LIMIT 1",
+    [Number(req.auth.sub)]
+  );
+  if (!rows.length) return res.status(401).json({ message: "invalid session" });
+
+  const user = rows[0];
+  return res.json({
+    data: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
       isFirstLogin: Boolean(user.is_first_login),
       user: { id: user.id, username: user.username, role: user.role, isFirstLogin: Boolean(user.is_first_login) }
     }
@@ -219,7 +308,7 @@ app.post("/auth/force-change-password", requireBearerAuth, async (req, res) => {
   return res.json({ message: "password updated", isFirstLogin: false });
 });
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   req.requestId = crypto.randomUUID();
   res.setHeader("x-request-id", req.requestId);
 
@@ -231,7 +320,7 @@ app.use((req, res, next) => {
   if (!token) return res.status(401).json({ message: "missing bearer token" });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = await verifyAuthToken(token);
     req.auth = decoded;
   } catch (err) {
     return res.status(401).json({ message: "invalid or expired token" });

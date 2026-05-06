@@ -1,16 +1,10 @@
 import { useState } from "react";
 import { authApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 function ProfilePage() {
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = localStorage.getItem("auth_user");
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [usernameInput, setUsernameInput] = useState(() => user?.username || "");
+  const { auth, updateUsername } = useAuth();
+  const [usernameInput, setUsernameInput] = useState(() => auth?.username || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,8 +31,7 @@ function ProfilePage() {
       const response = await authApi.patch("/auth/profile/name", { username: usernameInput.trim() });
       const updatedUser = response?.data?.data?.user || null;
       if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem("auth_user", JSON.stringify(updatedUser));
+        updateUsername(updatedUser.username || usernameInput.trim());
         setUsernameInput(updatedUser.username || "");
       }
       setNameMessage("");
@@ -88,16 +81,16 @@ function ProfilePage() {
     <div className="screen-card profile-page">
       <section className="profile-hero-panel">
         <div className="profile-identity">
-          <div className="profile-avatar">{(user?.username || "U").slice(0, 2).toUpperCase()}</div>
+          <div className="profile-avatar">{(auth?.username || "U").slice(0, 2).toUpperCase()}</div>
           <div>
             <p className="profile-eyebrow">Account Center</p>
-            <h2 className="profile-title">{user?.username || "Unknown User"}</h2>
+            <h2 className="profile-title">{auth?.username || "Unknown User"}</h2>
             <p className="profile-subtitle">Manage your account details and security settings.</p>
           </div>
         </div>
         <div className="profile-hero-actions">
-          <span className={`profile-status-chip ${user ? "ok" : "warn"}`}>
-            {user ? "Authenticated" : "Not Authenticated"}
+          <span className={`profile-status-chip ${auth ? "ok" : "warn"}`}>
+            {auth ? "Authenticated" : "Not Authenticated"}
           </span>
             <button
               type="button"
@@ -125,7 +118,7 @@ function ProfilePage() {
               className="profile-icon-btn"
               onClick={() => {
                 setShowNameModal(true);
-                setUsernameInput(user?.username || "");
+                setUsernameInput(auth?.username || "");
                 setNameError("");
                 setNameMessage("");
               }}
@@ -141,15 +134,15 @@ function ProfilePage() {
           <div className="profile-kv-list">
             <div className="profile-kv-item">
               <span>Username</span>
-              <strong>{user?.username || "-"}</strong>
+              <strong>{auth?.username || "-"}</strong>
             </div>
             <div className="profile-kv-item">
               <span>Role</span>
-              <strong>{user?.role || "-"}</strong>
+              <strong>{auth?.role || "-"}</strong>
             </div>
             <div className="profile-kv-item">
               <span>Session</span>
-              <strong>{user ? "Active" : "Inactive"}</strong>
+              <strong>{auth ? "Active" : "Inactive"}</strong>
             </div>
           </div>
         </section>
