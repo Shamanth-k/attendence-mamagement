@@ -1208,6 +1208,13 @@ body {
   height: 340px;
 }
 
+.report-actions-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .report-empty-state {
   border: 1px dashed #ced9ef;
   border-radius: 10px;
@@ -1270,6 +1277,85 @@ body {
   border: 1px dashed #c8d2e4;
   border-radius: 8px;
   padding: 18px;
+}
+
+.leave-form-card {
+  display: grid;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #dbe2ef;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.leave-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.leave-form-card label {
+  display: grid;
+  gap: 6px;
+  color: #4a5a7d;
+  font-size: 0.84rem;
+}
+
+.leave-form-card input,
+.leave-form-card select,
+.leave-form-card textarea,
+.biometric-filter-row input,
+.biometric-filter-row select,
+.data-table textarea {
+  width: 100%;
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.biometric-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.biometric-filter-row label {
+  display: grid;
+  gap: 6px;
+  color: #4a5a7d;
+  font-size: 0.82rem;
+}
+
+.biometric-filter-static div {
+  min-height: 40px;
+  display: grid;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid #d5ddec;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #243a69;
+}
+
+.biometric-table {
+  min-width: 1100px;
+}
+
+.payload-chip {
+  display: inline-block;
+  max-width: 320px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f4f7fd;
+  border: 1px solid #dde5f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #23437d;
 }
 
 .profile-card {
@@ -2195,6 +2281,11 @@ body {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
   }
 
+  .leave-form-grid,
+  .biometric-filter-row {
+    grid-template-columns: 1fr;
+  }
+
   .profile-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -2280,6 +2371,11 @@ body {
 
   .report-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .report-period-chip {

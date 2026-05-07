@@ -1,7 +1,8 @@
 # Attendance Management
 
-Attendance Management is a full-stack employee attendance system with a React frontend, a Node.js microservice backend, and a MySQL database. The repository includes:
+Attendance Management is a full-stack employee attendance system built as an Electron desktop application with a React frontend, a Node.js microservice backend, and a MySQL database. The repository includes:
 
+- An Electron shell for running the app as a native desktop application
 - A Vite + React frontend
 - An API gateway for authentication and request routing
 - Separate services for master data, attendance, reporting, and biometric ingestion
@@ -11,7 +12,12 @@ Attendance Management is a full-stack employee attendance system with a React fr
 
 ```text
 attendance management/
+├── electron/
+│   ├── main.js                  # Electron main process
+│   ├── preload.js               # Secure context bridge
+│   └── splash.html              # Boot splash screen
 ├── frontend/
+│   └── src/
 ├── backend/
 │   ├── gateway/
 │   ├── services/
@@ -25,11 +31,13 @@ attendance management/
 │   ├── schema.sql
 │   ├── fingerprint_seed.sql
 │   └── generate_fingerprint_seed.ps1
+├── electron-builder.config.js   # Packaging configuration
 └── package.json
 ```
 
 ## Tech Stack
 
+- Desktop Shell: Electron 42, electron-builder
 - Frontend: React 18, Vite, React Router, Axios, Recharts
 - Backend: Node.js, Express, Nodemon
 - Database: MySQL
@@ -95,7 +103,7 @@ npm install
 
 Because this repo uses npm workspaces, that single command installs dependencies for:
 
-- the root workspace
+- the root workspace (including Electron and electron-builder)
 - `frontend`
 - `backend/gateway`
 - `backend/services/master-service`
@@ -153,7 +161,7 @@ Create `backend/.env` from the example file:
 Copy-Item backend\.env.example backend\.env
 ```
 
-Required variables in [backend/.env](C:\Users\LENOVO\Desktop\attendance management\backend\.env):
+Required variables in `backend/.env`:
 
 ```env
 DB_HOST=localhost
@@ -191,7 +199,7 @@ Create `frontend/.env` from the example file:
 Copy-Item frontend\.env.example frontend\.env
 ```
 
-Default frontend env in [frontend/.env](C:\Users\LENOVO\Desktop\attendance management\frontend\.env):
+Default frontend env in `frontend/.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api
@@ -210,28 +218,30 @@ Because that schema seeds `is_first_login = 0`, you should be able to log in imm
 
 ## How to Run the Project
 
-### Recommended: run everything together
+### Option 1: Electron Desktop App (Recommended)
 
-From the project root:
+Launch the app as a native desktop window. Electron automatically starts all backend services, the Vite dev server, and opens the app in its own window:
+
+```powershell
+npm run electron:dev
+```
+
+What happens when you run this:
+
+1. A splash screen appears while services boot
+2. All five backend services start (master, attendance, report, biometric, gateway)
+3. The Vite dev server starts on port 5173
+4. Once everything is ready, the splash screen closes and the main app window opens
+
+### Option 2: Browser Mode
+
+Run all services and open the app in your regular browser:
 
 ```powershell
 npm run dev
 ```
 
-This starts all services together:
-
-- master-service
-- attendance-service
-- report-service
-- biometric-service
-- gateway
-- frontend
-
-### Open the app
-
-After startup, open:
-
-- `http://localhost:5173`
+After startup, open `http://localhost:5173` in your browser.
 
 ### Run services individually
 
@@ -245,6 +255,71 @@ npm run dev:biometric
 npm run dev:gateway
 npm run dev:frontend
 ```
+
+## Electron Desktop App
+
+### Overview
+
+The app is wrapped in Electron to run as a standalone desktop application. When launched, it:
+
+- Spawns all backend microservices as child processes
+- Starts the Vite dev server (in development) or loads the built frontend (in production)
+- Shows a splash screen while services boot up
+- Provides a native application menu with File, Edit, View, and Window options
+- Enforces single-instance lock so only one window can be open at a time
+- Cleans up all child processes on exit
+
+### Electron Files
+
+| File | Purpose |
+|------|---------|
+| `electron/main.js` | Main process — service spawning, window management, lifecycle |
+| `electron/preload.js` | Secure bridge between Node.js and the renderer via `contextBridge` |
+| `electron/splash.html` | Loading screen displayed during service startup |
+| `electron-builder.config.js` | Packaging configuration for Windows, macOS, and Linux |
+
+### Security Configuration
+
+The Electron shell follows recommended security practices:
+
+- `contextIsolation: true` — renderer cannot access Node.js globals
+- `nodeIntegration: false` — no `require()` available in the browser window
+- `sandbox: true` — renderer runs in a sandboxed process
+- `webSecurity: true` — same-origin policy is enforced
+- Preload uses `contextBridge` to expose only a minimal API (`getVersion`, `isPackaged`, `platform`)
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run electron:dev` | Launch the Electron app in development mode |
+| `npm run electron:build` | Build the frontend and create a distributable installer |
+| `npm run electron:pack` | Build the frontend and create an unpacked directory for testing |
+| `npm run dev` | Run all services in browser mode (no Electron) |
+
+### Building for Distribution
+
+To create a production installer:
+
+```powershell
+npm run electron:build
+```
+
+This will:
+
+1. Build the Vite frontend into `frontend/dist/`
+2. Package the app using electron-builder
+3. Output the installer to the `release/` directory
+
+Supported targets:
+
+- Windows: NSIS installer (`.exe`)
+- macOS: DMG disk image
+- Linux: AppImage and `.deb` package
+
+### App Icon
+
+Place your app icon at `electron/icon.png` (minimum 256x256, recommended 512x512). For Windows, you can also provide `electron/icon.ico` and update `electron-builder.config.js` accordingly.
 
 ## Production-Like Start Commands
 
@@ -282,7 +357,7 @@ Auth-related routes handled by the gateway include:
 
 At minimum, review and update these values:
 
-1. [backend/.env](C:\Users\LENOVO\Desktop\attendance management\backend\.env)
+1. `backend/.env`
    - Set `DB_USER`
    - Set `DB_PASSWORD`
    - Confirm `DB_HOST`
@@ -291,7 +366,7 @@ At minimum, review and update these values:
    - Change `JWT_SECRET` to your own secure value
    - Set `AUTH_REQUIRED=true` if you want authentication strictly enforced
 
-2. [frontend/.env](C:\Users\LENOVO\Desktop\attendance management\frontend\.env)
+2. `frontend/.env`
    - Change `VITE_API_BASE_URL` only if the gateway URL is different
 
 3. MySQL data
@@ -314,9 +389,8 @@ If you just want the shortest correct path:
 6. Create `backend/.env` from `backend/.env.example`
 7. Create `frontend/.env` from `frontend/.env.example`
 8. Update MySQL credentials in `backend/.env`
-9. Run `npm run dev`
-10. Open `http://localhost:5173`
-11. Log in with `admin` / `admin123`
+9. Run `npm run electron:dev` (desktop) or `npm run dev` (browser)
+10. Log in with `admin` / `admin123`
 
 ## Common Problems and Fixes
 
@@ -379,6 +453,25 @@ Fix:
 - Resolve conflicted files
 - Finish the merge before running `npm run dev`
 
+### 7. Electron app closes immediately after splash screen
+
+Cause:
+- A previous version had a race condition where destroying the splash screen triggered app quit before the main window was created
+
+Fix:
+- Pull the latest version of `electron/main.js`
+- The current version creates the main window before destroying the splash
+
+### 8. Electron services exit with code 1
+
+Cause:
+- MySQL is not running, so backend services fail to connect and exit
+- Port conflict with another process using the same port
+
+Fix:
+- Start MySQL before launching the Electron app
+- Check that ports 5001-5004, 5173, and 8080 are not in use
+
 ## Fingerprint Seed Regeneration
 
 If you receive new fingerprint export data and want to regenerate the SQL seed file, run:
@@ -394,9 +487,12 @@ This updates:
 ## Notes for Developers
 
 - Root `npm run dev` uses `concurrently` to start all apps together
+- `npm run electron:dev` uses Electron's main process to spawn services as child processes
 - Backend services load env values from `backend/.env`
 - The frontend talks to the gateway, not directly to individual services
 - The gateway handles auth and forwards API traffic to the backend services
+- In Electron, the frontend uses `HashRouter` for `file://` protocol compatibility; in browser mode, it uses `BrowserRouter`
+- The `electron/preload.js` exposes `window.electronAPI` which the frontend uses to detect the Electron environment
 
 ## Legacy Schema Note
 

@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import legacy from "@vitejs/plugin-legacy";
 
 export default defineConfig({
+  // Use relative paths so the production build works under Electron's file:// protocol
+  base: "./",
   plugins: [
     react(),
     legacy({
@@ -11,5 +13,10 @@ export default defineConfig({
   ],
   server: {
     port: 5173
+  },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true
   }
 });
+

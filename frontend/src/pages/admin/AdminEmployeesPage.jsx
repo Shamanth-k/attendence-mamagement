@@ -23,6 +23,7 @@ function AdminEmployeesPage() {
   });
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     fetchReferenceData().catch(() => {
@@ -70,6 +71,7 @@ function AdminEmployeesPage() {
       sectionId: ""
     });
     setFormError("");
+    setSuccess("");
   };
 
   const openAddModal = () => {
@@ -113,6 +115,7 @@ function AdminEmployeesPage() {
     setIsSubmitting(true);
     setFormError("");
     setError("");
+    setSuccess("");
     try {
       const payload = {
         employee_code: form.employeeCode.trim(),
@@ -130,8 +133,14 @@ function AdminEmployeesPage() {
         }
         closeModal();
       } else {
-        await api.post("/master/employees", payload);
+        const res = await api.post("/master/employees", payload);
         await fetchEmployees(page);
+        const credentials = res?.data?.credentials;
+        if (credentials?.username && credentials?.defaultPassword) {
+          setSuccess(`Employee login created. Username: ${credentials.username} | Default password: ${credentials.defaultPassword}`);
+        } else {
+          setSuccess("Employee added successfully.");
+        }
         closeModal();
       }
     } catch (err) {
@@ -151,7 +160,7 @@ function AdminEmployeesPage() {
     try {
       const res = await authApi.post(`/auth/generate-reset/${employeeId}`);
       const link = res?.data?.data?.resetLink || res?.data?.data?.url || "Reset link generated and sent.";
-      setResultById((prev) => ({ ...prev, [employeeId]: link }));
+      setResultById((prev) => ({ ...prev, [employeeId]: { link } }));
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to generate reset link.");
     } finally {
@@ -168,6 +177,7 @@ function AdminEmployeesPage() {
         </button>
       </div>
       {error ? <p className="form-error">{error}</p> : null}
+      {success ? <p className="form-success">{success}</p> : null}
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -205,8 +215,16 @@ function AdminEmployeesPage() {
                     >
                       {loadingEmployeeId === employee.id ? "Generating..." : "Generate Reset Link"}
                     </button>
+                    {resultById[employee.id]?.link ? (
+                      <button
+                        type="button"
+                        className="table-action-btn"
+                        onClick={() => window.open(resultById[employee.id].link, "_blank", "noopener,noreferrer")}
+                      >
+                        Open
+                      </button>
+                    ) : null}
                   </div>
-                  {resultById[employee.id] ? <p className="small-note">{resultById[employee.id]}</p> : null}
                 </td>
               </tr>
             ))}

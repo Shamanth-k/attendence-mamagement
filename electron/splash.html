@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      background: transparent;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    .splash-card {
+      width: 400px;
+      padding: 48px 32px 40px;
+      background: linear-gradient(145deg, #0f1629 0%, #0a0e1a 100%);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 20px;
+      text-align: center;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(99, 102, 241, 0.08);
+    }
+
+    .logo-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 32px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 30%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite, grow 3s ease-out forwards;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes grow {
+      0%   { width: 5%; }
+      40%  { width: 45%; }
+      70%  { width: 70%; }
+      100% { width: 92%; }
+    }
+
+    .status {
+      font-size: 12px;
+      color: #475569;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-card">
+    <div class="logo-icon">📋</div>
+    <div class="title">Attendance Management</div>
+    <div class="subtitle">Starting services…</div>
+    <div class="progress-track">
+      <div class="progress-bar"></div>
+    </div>
+    <div class="status">Initializing backend &amp; gateway</div>
+  </div>
+</body>
+</html>

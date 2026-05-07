@@ -66,6 +66,9 @@ function AdminLayout() {
         <NavLink title="Employees" to="/admin/employees" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>E</NavLink>
         <NavLink title="Calendar" to="/admin/calendar" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>C</NavLink>
         <NavLink title="Attendance" to="/admin/attendance" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>At</NavLink>
+        <NavLink title="Report" to="/admin/report" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>R</NavLink>
+        <NavLink title="Biometric" to="/admin/biometric" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>B</NavLink>
+        <NavLink title="Leave" to="/admin/leave" className={({ isActive }) => `rail-icon rail-icon-light ${isActive ? "active" : ""}`}>L</NavLink>
         <div className="rail-spacer" />
         <NavLink title="Profile" to="/admin/profile" className={({ isActive }) => `rail-icon rail-icon-filled ${isActive ? "active" : ""}`}>P</NavLink>
       </aside>
@@ -118,6 +121,9 @@ function AdminLayout() {
           <NavLink to="/admin/employees" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Employees</NavLink>
           <NavLink to="/admin/calendar" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Calendar</NavLink>
           <NavLink to="/admin/attendance" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Attendance</NavLink>
+          <NavLink to="/admin/report" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Report</NavLink>
+          <NavLink to="/admin/biometric" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Biometric</NavLink>
+          <NavLink to="/admin/leave" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Leave</NavLink>
           <NavLink to="/admin/profile" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>Profile</NavLink>
           <button type="button" className="top-logout-btn" onClick={logout}>Logout</button>
         </header>

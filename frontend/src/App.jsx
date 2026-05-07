@@ -12,12 +12,15 @@ import AdminMastersPage from "./pages/admin/AdminMastersPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
 import AdminCalendarPage from "./pages/admin/AdminCalendarPage";
 import AdminAttendancePage from "./pages/admin/AdminAttendancePage";
+import AdminReportPage from "./pages/admin/AdminReportPage";
+import AdminBiometricPage from "./pages/admin/AdminBiometricPage";
 import ProfilePage from "./pages/ProfilePage";
 import EmployeeDashboardPage from "./pages/employee/EmployeeDashboardPage";
 import EmployeeAttendancePage from "./pages/employee/EmployeeAttendancePage";
 import EmployeeReportPage from "./pages/employee/EmployeeReportPage";
 import EmployeeLeavePage from "./pages/employee/EmployeeLeavePage";
 import EmployeeProfilePage from "./pages/employee/EmployeeProfilePage";
+import LeaveClaimPage from "./pages/LeaveClaimPage";
 import { useAuth } from "./context/AuthContext";
 
 function LandingRoute() {
@@ -48,6 +51,9 @@ function App() {
                 <Route path="employees" element={<AdminEmployeesPage />} />
                 <Route path="calendar" element={<AdminCalendarPage />} />
                 <Route path="attendance" element={<AdminAttendancePage />} />
+                <Route path="report" element={<AdminReportPage />} />
+                <Route path="biometric" element={<AdminBiometricPage />} />
+                <Route path="leave" element={<LeaveClaimPage />} />
                 <Route path="profile" element={<ProfilePage />} />
               </Route>
             </Route>

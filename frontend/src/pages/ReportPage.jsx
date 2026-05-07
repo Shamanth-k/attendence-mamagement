@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { useEmployee } from "../context/EmployeeContext";
 import DateRangeFilterBar from "../components/DateRangeFilterBar";
@@ -48,6 +49,7 @@ function getRange(period, anchorDate, customFrom, customTo) {
 }
 
 function ReportPage() {
+  const navigate = useNavigate();
   const { selectedEmployee, selectedEmployeeId } = useEmployee();
   const today = todayString();
   const [period, setPeriod] = useState("month");
@@ -56,6 +58,7 @@ function ReportPage() {
   const [customTo, setCustomTo] = useState(monthEnd(today));
   const [data, setData] = useState([]);
   const [total, setTotal] = useState("00h 00m");
+  const [downloadError, setDownloadError] = useState("");
 
   const range = useMemo(
     () => getRange(period, anchorDate, customFrom, customTo),
@@ -87,6 +90,33 @@ function ReportPage() {
     return sum / formatted.length;
   }, [formatted]);
 
+  const downloadAttendanceExport = async () => {
+    setDownloadError("");
+    try {
+      const params = new URLSearchParams({
+        from: range.from,
+        to: range.to
+      });
+      if (selectedEmployee?.employee_code) {
+        params.set("employeeCode", selectedEmployee.employee_code);
+      }
+
+      const res = await api.get(`/admin/reports/attendance-export?${params.toString()}`, {
+        responseType: "blob"
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = "attendance-export.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      setDownloadError(error?.response?.data?.message || "Unable to download attendance export.");
+    }
+  };
+
   return (
     <div className="screen-card report-page">
       <div className="report-header">
@@ -96,6 +126,16 @@ function ReportPage() {
         </div>
         <div className="report-period-chip">{range.label}</div>
       </div>
+
+      <div className="report-actions-bar">
+        <button type="button" className="primary-btn" onClick={downloadAttendanceExport}>
+          Download Attendance CSV
+        </button>
+        <button type="button" className="table-action-btn" onClick={() => navigate("/admin/biometric")}>
+          View Biometric Logs
+        </button>
+      </div>
+      {downloadError ? <p className="form-error">{downloadError}</p> : null}
 
       <div className="report-filter-card">
         <DateRangeFilterBar

@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const crypto = require("crypto");
 require("dotenv").config({ path: "../../.env" });
 const db = require("../../../shared/src/db");
 const { createAuditMiddleware } = require("../../../shared/src/audit");
@@ -13,6 +14,10 @@ app.use(createAuditMiddleware("master-service"));
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const EMPLOYEE_LIST_DEFAULT_LIMIT = 50;
 const EMPLOYEE_LIST_MAX_LIMIT = 200;
+const SCRYPT_KEYLEN = 64;
+
+const hashPassword = (password, salt) =>
+  crypto.scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
 
 const loadEmployeeById = async (employeeId) => {
   const [rows] = await db.query(
@@ -144,8 +149,27 @@ app.post("/api/master/employees", asyncHandler(async (req, res) => {
       "INSERT INTO employees(employee_code, full_name, section_id) VALUES (?, ?, ?)",
       [employee_code, full_name, sectionId]
     );
+    const employeeId = result.insertId;
+    const defaultUsername = String(employee_code).trim();
+    const defaultPassword = `${defaultUsername}@123`;
+    const salt = crypto.randomBytes(16).toString("hex");
+    const passwordHash = hashPassword(defaultPassword, salt);
+
+    await db.query(
+      `INSERT INTO users(employee_id, username, role, password_salt, password_hash, is_first_login, is_active)
+       VALUES (?, ?, 'EMPLOYEE', ?, ?, 1, 1)`,
+      [employeeId, defaultUsername, salt, passwordHash]
+    );
+
     const created = await loadEmployeeById(result.insertId);
-    res.status(201).json({ message: "employee added", data: created });
+    res.status(201).json({
+      message: "employee added",
+      data: created,
+      credentials: {
+        username: defaultUsername,
+        defaultPassword
+      }
+    });
   } catch (error) {
     if (error?.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "employee_code already exists" });

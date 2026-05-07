@@ -1,6 +1,8 @@
 {
   "name": "attendance-management-platform",
+  "version": "1.0.0",
   "private": true,
+  "main": "electron/main.js",
   "workspaces": [
     "frontend",
     "backend/gateway",
@@ -16,9 +18,14 @@
     "dev:master": "npm --workspace backend/services/master-service run dev",
     "dev:attendance": "npm --workspace backend/services/attendance-service run dev",
     "dev:report": "npm --workspace backend/services/report-service run dev",
-    "dev:biometric": "npm --workspace backend/services/biometric-service run dev"
+    "dev:biometric": "npm --workspace backend/services/biometric-service run dev",
+    "electron:dev": "electron .",
+    "electron:build": "npm --workspace frontend run build && electron-builder --config electron-builder.config.js",
+    "electron:pack": "npm --workspace frontend run build && electron-builder --config electron-builder.config.js --dir"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1"
   }
 }
